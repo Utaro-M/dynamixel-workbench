@@ -167,6 +167,9 @@ bool DynamixelController::initControlItems(void)
   if (goal_velocity == NULL)  goal_velocity = dxl_wb_->getItemInfo(it->second, "Moving_Speed");
   if (goal_velocity == NULL)  return false;
 
+  const ControlItem *goal_current = dxl_wb_->getItemInfo(it->second, "Goal_Current");
+  if (goal_current == NULL) return false;
+
   const ControlItem *present_position = dxl_wb_->getItemInfo(it->second, "Present_Position");
   if (present_position == NULL) return false;
 
@@ -180,6 +183,7 @@ bool DynamixelController::initControlItems(void)
 
   control_items_["Goal_Position"] = goal_position;
   control_items_["Goal_Velocity"] = goal_velocity;
+  control_items_["Goal_Current"] = goal_current;
 
   control_items_["Present_Position"] = present_position;
   control_items_["Present_Velocity"] = present_velocity;
@@ -207,6 +211,18 @@ bool DynamixelController::initSDKHandlers(void)
   }
 
   result = dxl_wb_->addSyncWriteHandler(control_items_["Goal_Velocity"]->address, control_items_["Goal_Velocity"]->data_length, &log);
+  if (result == false)
+  {
+    ROS_ERROR("%s", log);
+    return result;
+  }
+  else
+  {
+    ROS_INFO("%s", log);
+  }
+
+  // #define SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT 2
+  result = dxl_wb_->addSyncWriteHandler(control_items_["Goal_Current"]->address, control_items_["Goal_Current"]->data_length, &log);
   if (result == false)
   {
     ROS_ERROR("%s", log);
@@ -318,7 +334,7 @@ void DynamixelController::initPublisher()
   dynamixel_state_list_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::DynamixelStateList>("dynamixel_state", 100);
   if (is_joint_state_topic_) joint_states_pub_ = priv_node_handle_.advertise<sensor_msgs::JointState>("joint_states", 100);
 }
-
+// msg from dynamixel_joint_trajectory_server.py
 void DynamixelController::initSubscriber()
 {
   trajectory_sub_ = priv_node_handle_.subscribe("joint_trajectory", 100, &DynamixelController::trajectoryMsgCallback, this);
@@ -584,6 +600,7 @@ void DynamixelController::writeCallback(const ros::TimerEvent&)
   uint8_t id_cnt = 0;
 
   int32_t dynamixel_position[dynamixel_.size()];
+  int32_t dynamixel_current_limit[dynamixel_.size()];
 
   static uint32_t point_cnt = 0;
   static uint32_t position_cnt = 0;
@@ -596,10 +613,18 @@ void DynamixelController::writeCallback(const ros::TimerEvent&)
 
   if (is_moving_ == true)
   {
-    for (uint8_t index = 0; index < id_cnt; index++)
+    for (uint8_t index = 0; index < id_cnt; index++){
       dynamixel_position[index] = dxl_wb_->convertRadian2Value(id_array[index], jnt_tra_msg_->points[point_cnt].positions.at(index));
+      dynamixel_current_limit[index] = dxl_wb_->convertCurrent2Value(id_array[index], jnt_tra_msg_->points[point_cnt].effort.at(index));
+    }
 
     result = dxl_wb_->syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_POSITION, id_array, id_cnt, dynamixel_position, 1, &log);
+    if (result == false)
+    {
+      ROS_ERROR("%s", log);
+    }
+
+    result = dxl_wb_->syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT, id_array, id_cnt, dynamixel_current_limit, 1, &log);
     if (result == false)
     {
       ROS_ERROR("%s", log);
@@ -666,6 +691,10 @@ void DynamixelController::trajectoryMsgCallback(const trajectory_msgs::JointTraj
 
           if (msg->points[cnt].accelerations.size() != 0)  wp.acceleration = msg->points[cnt].accelerations.at(id_num);
           else wp.acceleration = 0.0f;
+
+          //needless???
+          // if (msg->points[cnt].effort.size() != 0)  wp.effort = msg->points[cnt].effort.at(id_num);
+          // else wp.effort = 0.0f;
 
           goal.push_back(wp);
         }
