@@ -615,11 +615,8 @@ void DynamixelController::writeCallback(const ros::TimerEvent&)
   {
     for (uint8_t index = 0; index < id_cnt; index++){
       dynamixel_position[index] = dxl_wb_->convertRadian2Value(id_array[index], jnt_tra_msg_->points[point_cnt].positions.at(index));
-      // std::cout << "jnt_tra_msg_->points[point_cnt].effort.size() =" << (jnt_tra_msg_->points[point_cnt].effort).size() << std::endl;
       if (jnt_tra_msg_->points[point_cnt].effort.size() != 0){
-	// dynamixel_current_limit[index] = dxl_wb_->convertCurrent2Value(id_array[index], jnt_tra_msg_->points[point_cnt].effort.at(index));
 	dynamixel_current_limit[index] = jnt_tra_msg_->points[point_cnt].effort.at(index);
-	std::cout << "dynamixel_current_limit[index] = " << index << ":" << dynamixel_current_limit[index] <<std::endl;
       }
     }
 
@@ -629,7 +626,6 @@ void DynamixelController::writeCallback(const ros::TimerEvent&)
       ROS_ERROR("%s", log);
     }
     if (jnt_tra_msg_->points[point_cnt].effort.size() != 0){
-      std::cout << "SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT" <<std::endl;
       result = dxl_wb_->syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT, id_array, id_cnt, dynamixel_current_limit, 1, &log);
       if (result == false)
 	{
@@ -664,7 +660,6 @@ void DynamixelController::trajectoryMsgCallback(const trajectory_msgs::JointTraj
   uint8_t id_cnt = 0;
   bool result = false;
   WayPoint wp;
-  std::cout << "in traj msg callback" <<std::endl;
   if (is_moving_ == false)
   {
     jnt_tra_msg_->joint_names.clear();
