@@ -31,6 +31,8 @@ typedef struct _Point
   double position;
   double velocity;
   double acceleration;
+  // needless???
+  double effort;
 } WayPoint;
 
 class MinimumJerk
