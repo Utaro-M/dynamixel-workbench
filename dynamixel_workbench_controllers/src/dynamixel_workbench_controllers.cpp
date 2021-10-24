@@ -615,7 +615,10 @@ void DynamixelController::writeCallback(const ros::TimerEvent&)
   {
     for (uint8_t index = 0; index < id_cnt; index++){
       dynamixel_position[index] = dxl_wb_->convertRadian2Value(id_array[index], jnt_tra_msg_->points[point_cnt].positions.at(index));
-      dynamixel_current_limit[index] = dxl_wb_->convertCurrent2Value(id_array[index], jnt_tra_msg_->points[point_cnt].effort.at(index));
+      // std::cout << "jnt_tra_msg_->points[point_cnt].effort.size() =" << (jnt_tra_msg_->points[point_cnt].effort).size() << std::endl;
+      if (jnt_tra_msg_->points[point_cnt].effort.size() != 0){
+	dynamixel_current_limit[index] = dxl_wb_->convertCurrent2Value(id_array[index], jnt_tra_msg_->points[point_cnt].effort.at(index));
+      }
     }
 
     result = dxl_wb_->syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_POSITION, id_array, id_cnt, dynamixel_position, 1, &log);
@@ -623,11 +626,12 @@ void DynamixelController::writeCallback(const ros::TimerEvent&)
     {
       ROS_ERROR("%s", log);
     }
-
-    result = dxl_wb_->syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT, id_array, id_cnt, dynamixel_current_limit, 1, &log);
-    if (result == false)
-    {
-      ROS_ERROR("%s", log);
+    if (jnt_tra_msg_->points[point_cnt].effort.size() != 0){
+      result = dxl_wb_->syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT, id_array, id_cnt, dynamixel_current_limit, 1, &log);
+      if (result == false)
+	{
+	  ROS_ERROR("%s", log);
+	}
     }
 
     position_cnt++;
@@ -657,7 +661,7 @@ void DynamixelController::trajectoryMsgCallback(const trajectory_msgs::JointTraj
   uint8_t id_cnt = 0;
   bool result = false;
   WayPoint wp;
-
+  std::cout << "in traj msg callback" <<std::endl;
   if (is_moving_ == false)
   {
     jnt_tra_msg_->joint_names.clear();
@@ -708,6 +712,7 @@ void DynamixelController::trajectoryMsgCallback(const trajectory_msgs::JointTraj
             jnt_tra_point_msg.positions.push_back(goal[id_num].position);
             jnt_tra_point_msg.velocities.push_back(goal[id_num].velocity);
             jnt_tra_point_msg.accelerations.push_back(goal[id_num].acceleration);
+	    jnt_tra_point_msg.effort.push_back(goal[id_num].effort);
           }
 
           jnt_tra_msg_->points.push_back(jnt_tra_point_msg);
@@ -739,12 +744,15 @@ void DynamixelController::trajectoryMsgCallback(const trajectory_msgs::JointTraj
               jnt_tra_point_msg.positions.push_back(way_point[id_num].position);
               jnt_tra_point_msg.velocities.push_back(way_point[id_num].velocity);
               jnt_tra_point_msg.accelerations.push_back(way_point[id_num].acceleration);
+	      jnt_tra_point_msg.effort.push_back(way_point[id_num].effort);
+ 
             }
-
+	    std::cout << "jnt_tra_point_msg.effort" << jnt_tra_point_msg.effort[0] << std::endl;
             jnt_tra_msg_->points.push_back(jnt_tra_point_msg);
             jnt_tra_point_msg.positions.clear();
             jnt_tra_point_msg.velocities.clear();
             jnt_tra_point_msg.accelerations.clear();
+	    jnt_tra_point_msg.effort.clear();
           }
 
           pre_goal_ = goal;
