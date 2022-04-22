@@ -301,6 +301,8 @@ bool DynamixelController::getPresentPosition(std::vector<std::string> dxl_name)
       for(uint8_t index = 0; index < id_cnt; index++)
       {
         wp.position = dxl_wb_->convertValue2Radian(id_array[index], get_position[index]);
+        wp.velocity = 0.0f;
+        wp.acceleration = 0.0f;
         pre_goal_.push_back(wp);
       }
     }
@@ -322,6 +324,8 @@ bool DynamixelController::getPresentPosition(std::vector<std::string> dxl_name)
       }
 
       wp.position = dxl_wb_->convertValue2Radian((uint8_t)dxl.second, read_position);
+      wp.velocity = 0.0f;
+      wp.acceleration = 0.0f;
       pre_goal_.push_back(wp);
     }
   }
