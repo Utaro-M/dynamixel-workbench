@@ -31,6 +31,8 @@
 #include <dynamixel_workbench_toolbox/dynamixel_workbench.h>
 #include <dynamixel_workbench_msgs/DynamixelStateList.h>
 #include <dynamixel_workbench_msgs/DynamixelCommand.h>
+// #include <dynamixel_workbench_msgs/DynamixelStateTemperatureList.h>
+#include <dynamixel_workbench_msgs/JointStateTemperature.h>
 
 #include <dynamixel_workbench_controllers/trajectory_generator.h>
 
@@ -79,7 +81,8 @@ class DynamixelController
   std::map<std::string, const ControlItem*> control_items_;
   std::vector<std::pair<std::string, ItemValue>> dynamixel_info_;
   dynamixel_workbench_msgs::DynamixelStateList dynamixel_state_list_;
-  sensor_msgs::JointState joint_state_msg_;
+  // sensor_msgs::JointState joint_state_msg_;
+ dynamixel_workbench_msgs::JointStateTemperature joint_state_msg_;
   std::vector<WayPoint> pre_goal_;
 
   bool is_joint_state_topic_;
@@ -97,6 +100,7 @@ class DynamixelController
   double pub_period_;
 
   bool is_moving_;
+  int32_t get_temperature[];
 
  public:
   DynamixelController();

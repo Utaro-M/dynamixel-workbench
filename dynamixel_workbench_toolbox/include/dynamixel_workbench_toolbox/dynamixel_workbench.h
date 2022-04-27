@@ -80,6 +80,9 @@ class DynamixelWorkbench : public DynamixelDriver
   bool getPresentVelocityData(uint8_t id, int32_t* data, const char **log = NULL);
   bool getVelocity(uint8_t id, float* velocity, const char **log = NULL);
 
+  bool getTemperature(uint8_t id, int32_t* data, const char **log = NULL);
+  // bool getTemperature(uint8_t id, float* temperature, const char **log = NULL);
+
   int32_t convertRadian2Value(uint8_t id, float radian);
   float convertValue2Radian(uint8_t id, int32_t value);
 

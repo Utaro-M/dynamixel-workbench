@@ -181,6 +181,10 @@ bool DynamixelController::initControlItems(void)
   if (present_current == NULL)  present_current = dxl_wb_->getItemInfo(it->second, "Present_Load");
   if (present_current == NULL) return false;
 
+  const ControlItem *present_temperature = dxl_wb_->getItemInfo(it->second, "Present_Temperature");
+  // if (present_temperature == NULL)  present_temperature = dxl_wb_->getItemInfo(it->second, "present_temperature");
+  if (present_temperature == NULL) return false;
+
   control_items_["Goal_Position"] = goal_position;
   control_items_["Goal_Velocity"] = goal_velocity;
   control_items_["Goal_Current"] = goal_current;
@@ -188,6 +192,7 @@ bool DynamixelController::initControlItems(void)
   control_items_["Present_Position"] = present_position;
   control_items_["Present_Velocity"] = present_velocity;
   control_items_["Present_Current"] = present_current;
+  control_items_["Present_Temperature"] = present_temperature;
 
   return true;
 }
@@ -241,7 +246,7 @@ bool DynamixelController::initSDKHandlers(void)
       As some models have an empty space between Present_Velocity and Present Current, read_length is modified as below.
     */    
     // uint16_t read_length = control_items_["Present_Position"]->data_length + control_items_["Present_Velocity"]->data_length + control_items_["Present_Current"]->data_length;
-    uint16_t read_length = control_items_["Present_Position"]->data_length + control_items_["Present_Velocity"]->data_length + control_items_["Present_Current"]->data_length+2;
+    uint16_t read_length = control_items_["Present_Position"]->data_length + control_items_["Present_Velocity"]->data_length + control_items_["Present_Current"]->data_length + control_items_["Present_Temperature"]->data_length +2;
 
     result = dxl_wb_->addSyncReadHandler(start_address,
                                           read_length,
@@ -336,7 +341,8 @@ bool DynamixelController::getPresentPosition(std::vector<std::string> dxl_name)
 void DynamixelController::initPublisher()
 {
   dynamixel_state_list_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::DynamixelStateList>("dynamixel_state", 100);
-  if (is_joint_state_topic_) joint_states_pub_ = priv_node_handle_.advertise<sensor_msgs::JointState>("joint_states", 100);
+  // if (is_joint_state_topic_) joint_states_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states", 100);
+    if (is_joint_state_topic_) joint_states_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states", 100);
 }
 // msg from dynamixel_joint_trajectory_server.py
 void DynamixelController::initSubscriber()
@@ -352,6 +358,7 @@ void DynamixelController::initServer()
 
 void DynamixelController::readCallback(const ros::TimerEvent&)
 {
+  std::cout << "read" << std::endl;
 #ifdef DEBUG
   static double priv_read_secs =ros::Time::now().toSec();
 #endif
@@ -364,6 +371,7 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
   int32_t get_current[dynamixel_.size()];
   int32_t get_velocity[dynamixel_.size()];
   int32_t get_position[dynamixel_.size()];
+  int32_t get_temperature[dynamixel_.size()];
 
   uint8_t id_array[dynamixel_.size()];
   uint8_t id_cnt = 0;
@@ -421,6 +429,14 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
                                                     control_items_["Present_Position"]->data_length,
                                                     get_position,
                                                     &log);
+
+      result = dxl_wb_->getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+                                                    id_array,
+                                                    id_cnt,
+                                                    control_items_["Present_Temperature"]->address,
+                                                    control_items_["Present_Temperature"]->data_length,
+                                                    get_temperature,
+                                                    &log);
       if (result == false)
       {
         ROS_ERROR("%s", log);
@@ -431,6 +447,7 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
         dynamixel_state[index].present_current = get_current[index];
         dynamixel_state[index].present_velocity = get_velocity[index];
         dynamixel_state[index].present_position = get_position[index];
+        // dynamixel_state[index].present_temperature = get_temperature[index];
 
         dynamixel_state_list_.dynamixel_state.push_back(dynamixel_state[index]);
       }
@@ -474,6 +491,7 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
 
 void DynamixelController::publishCallback(const ros::TimerEvent&)
 {
+  std::cout << "pub" << std::endl;
 #ifdef DEBUG
   static double priv_pub_secs =ros::Time::now().toSec();
 #endif
@@ -487,6 +505,7 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
     joint_state_msg_.position.clear();
     joint_state_msg_.velocity.clear();
     joint_state_msg_.effort.clear();
+    joint_state_msg_.temperature.clear();
 
     uint8_t id_cnt = 0;
     for (auto const& dxl:dynamixel_)
@@ -494,6 +513,7 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
       double position = 0.0;
       double velocity = 0.0;
       double effort = 0.0;
+      double temperature = 0.0;
 
       joint_state_msg_.name.push_back(dxl.first);
 
@@ -506,10 +526,14 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
 
       velocity = dxl_wb_->convertValue2Velocity((uint8_t)dxl.second, (int32_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_velocity);
       position = dxl_wb_->convertValue2Radian((uint8_t)dxl.second, (int32_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_position);
+      // temperature = dxl_wb_->getTemperature((uint8_t)dxl.second, (int32_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_temperature);
+       // temperature =  dynamixel_state_list_.dynamixel_state[id_cnt].present_temperature;
+      temperature =  (double)get_temperature[id_cnt];
 
       joint_state_msg_.effort.push_back(effort);
       joint_state_msg_.velocity.push_back(velocity);
       joint_state_msg_.position.push_back(position);
+      joint_state_msg_.temperature.push_back(temperature);
 
       id_cnt++;
     }

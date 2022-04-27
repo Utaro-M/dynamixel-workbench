@@ -1196,6 +1196,42 @@ bool DynamixelWorkbench::getPresentVelocityData(uint8_t id, int32_t* data, const
   return result;
 }
 
+// bool DynamixelWorkbench::getTemperature(uint8_t id, float* temperature, const char **log)
+// {
+//   bool result = 0;
+//   int32_t get_data = 0;
+
+//   result = getPresentTemperatureData(id, &get_data, log);
+//   if (result == false)
+//   {
+//     if (log != NULL) *log = "[DynamixelWorkbench] Failed to get temperature!";
+//     return result;
+//   }
+
+//   *temperature = convertValue2Temperature(id, get_data);
+
+//   if (log != NULL) *log = "[DynamixelWorkbench] Succeeded to get temperature!";
+//   return result;
+// }
+
+bool DynamixelWorkbench::getTemperature(uint8_t id, int32_t* data, const char **log)
+{
+  bool result = 0;
+  int32_t get_data = 0;
+
+  result = readRegister(id, "Present_Temperature", &get_data, log);
+  if (result == false)
+  {
+    if (log != NULL) *log = "[DynamixelWorkbench] Failed to get present temperature data!";
+    return result;
+  }
+
+  *data = get_data;
+
+  if (log != NULL) *log = "[DynamixelWorkbench] Succeeded to get present temperature data!";
+  return result;
+}
+
 int32_t DynamixelWorkbench::convertRadian2Value(uint8_t id, float radian)
 {
   int32_t position = 0;
