@@ -342,7 +342,10 @@ void DynamixelController::initPublisher()
 {
   dynamixel_state_list_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::DynamixelStateList>("dynamixel_state", 100);
   // if (is_joint_state_topic_) joint_states_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states", 100);
-    if (is_joint_state_topic_) joint_states_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states", 100);
+  if (is_joint_state_topic_){
+    joint_states_pub_ = priv_node_handle_.advertise<sensor_msgs::JointState>("joint_states", 100);
+    joint_states_temperature_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states_tmperature", 100);
+  }
 }
 // msg from dynamixel_joint_trajectory_server.py
 void DynamixelController::initSubscriber()
@@ -429,7 +432,7 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
                                                     control_items_["Present_Position"]->data_length,
                                                     get_position,
                                                     &log);
-
+      std::cout << "bef" << std::endl;
       result = dxl_wb_->getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
                                                     id_array,
                                                     id_cnt,
@@ -437,6 +440,7 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
                                                     control_items_["Present_Temperature"]->data_length,
                                                     get_temperature,
                                                     &log);
+      std::cout << "af result = " << result << std::endl;
       if (result == false)
       {
         ROS_ERROR("%s", log);
@@ -505,7 +509,11 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
     joint_state_msg_.position.clear();
     joint_state_msg_.velocity.clear();
     joint_state_msg_.effort.clear();
-    joint_state_msg_.temperature.clear();
+    joint_state_temperature_msg_.name.clear();
+    joint_state_temperature_msg_.position.clear();
+    joint_state_temperature_msg_.velocity.clear();
+    joint_state_temperature_msg_.effort.clear();
+    joint_state_temperature_msg_.temperature.clear();
 
     uint8_t id_cnt = 0;
     for (auto const& dxl:dynamixel_)
@@ -516,7 +524,7 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
       double temperature = 0.0;
 
       joint_state_msg_.name.push_back(dxl.first);
-
+      joint_state_temperature_msg_.name.push_back(dxl.first);
       if (dxl_wb_->getProtocolVersion() == 2.0f)
       {
         if (strcmp(dxl_wb_->getModelName((uint8_t)dxl.second), "XL-320") == 0) effort = dxl_wb_->convertValue2Load((int16_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_current);
@@ -533,7 +541,11 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
       joint_state_msg_.effort.push_back(effort);
       joint_state_msg_.velocity.push_back(velocity);
       joint_state_msg_.position.push_back(position);
-      joint_state_msg_.temperature.push_back(temperature);
+      joint_state_temperature_msg_.effort.push_back(effort);
+      joint_state_temperature_msg_.velocity.push_back(velocity);
+      joint_state_temperature_msg_.position.push_back(position);
+      joint_state_temperature_msg_.temperature.push_back(temperature);
+
 
       id_cnt++;
     }

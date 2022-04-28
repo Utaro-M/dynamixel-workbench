@@ -32,6 +32,7 @@
 #include <dynamixel_workbench_msgs/DynamixelStateList.h>
 #include <dynamixel_workbench_msgs/DynamixelCommand.h>
 // #include <dynamixel_workbench_msgs/DynamixelStateTemperatureList.h>
+// #include <dynamixel_workbench_msgs/JointState.h>
 #include <dynamixel_workbench_msgs/JointStateTemperature.h>
 
 #include <dynamixel_workbench_controllers/trajectory_generator.h>
@@ -64,6 +65,7 @@ class DynamixelController
   // ROS Topic Publisher
   ros::Publisher dynamixel_state_list_pub_;
   ros::Publisher joint_states_pub_;
+  ros::Publisher joint_states_temperature_pub_;
 
   // ROS Topic Subscriber
   ros::Subscriber cmd_vel_sub_;
@@ -81,8 +83,8 @@ class DynamixelController
   std::map<std::string, const ControlItem*> control_items_;
   std::vector<std::pair<std::string, ItemValue>> dynamixel_info_;
   dynamixel_workbench_msgs::DynamixelStateList dynamixel_state_list_;
-  // sensor_msgs::JointState joint_state_msg_;
- dynamixel_workbench_msgs::JointStateTemperature joint_state_msg_;
+  sensor_msgs::JointState joint_state_msg_;
+  dynamixel_workbench_msgs::JointStateTemperature joint_state_temperature_msg_;
   std::vector<WayPoint> pre_goal_;
 
   bool is_joint_state_topic_;
