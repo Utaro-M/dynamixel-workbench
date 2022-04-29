@@ -193,7 +193,14 @@ bool DynamixelController::initControlItems(void)
   control_items_["Present_Velocity"] = present_velocity;
   control_items_["Present_Current"] = present_current;
   control_items_["Present_Temperature"] = present_temperature;
-
+  std::cout <<" control_items_[Present_Position]->address =" << control_items_["Present_Position"]->address;
+  std::cout <<" control_items_[Present_Position]->data_length =" << control_items_["Present_Position"]->data_length;
+  std::cout <<" control_items_[Present_Velocity]->address =" << control_items_["Present_Velocity"]->address;
+  std::cout <<" control_items_[Present_Velocity]->data_length =" << control_items_["Present_Velocity"]->data_length;
+  std::cout <<" control_items_[Present_Current]->address =" << control_items_["Present_Current"]->address;
+  std::cout <<" control_items_[Present_Current]->data_length =" << control_items_["Present_Current"]->data_length;
+  std::cout <<" control_items_[Present_Temperature]->address =" << control_items_["Present_Temperature"]->address;
+  std::cout <<" control_items_[Present_Temperature]->data_length =" << control_items_["Present_Temperature"]->data_length;
   return true;
 }
 
@@ -246,7 +253,7 @@ bool DynamixelController::initSDKHandlers(void)
       As some models have an empty space between Present_Velocity and Present Current, read_length is modified as below.
     */    
     // uint16_t read_length = control_items_["Present_Position"]->data_length + control_items_["Present_Velocity"]->data_length + control_items_["Present_Current"]->data_length;
-    uint16_t read_length = control_items_["Present_Position"]->data_length + control_items_["Present_Velocity"]->data_length + control_items_["Present_Current"]->data_length + control_items_["Present_Temperature"]->data_length +2;
+    uint16_t read_length = control_items_["Present_Position"]->data_length + control_items_["Present_Velocity"]->data_length + control_items_["Present_Current"]->data_length + control_items_["Present_Temperature"]->data_length +10; //Adjust for temperature acquisition
 
     result = dxl_wb_->addSyncReadHandler(start_address,
                                           read_length,
@@ -361,7 +368,6 @@ void DynamixelController::initServer()
 
 void DynamixelController::readCallback(const ros::TimerEvent&)
 {
-  std::cout << "read" << std::endl;
 #ifdef DEBUG
   static double priv_read_secs =ros::Time::now().toSec();
 #endif
@@ -432,7 +438,6 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
                                                     control_items_["Present_Position"]->data_length,
                                                     get_position,
                                                     &log);
-      std::cout << "bef" << std::endl;
       result = dxl_wb_->getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
                                                     id_array,
                                                     id_cnt,
@@ -440,7 +445,6 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
                                                     control_items_["Present_Temperature"]->data_length,
                                                     get_temperature,
                                                     &log);
-      std::cout << "af result = " << result << std::endl;
       if (result == false)
       {
         ROS_ERROR("%s", log);
@@ -495,7 +499,6 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
 
 void DynamixelController::publishCallback(const ros::TimerEvent&)
 {
-  std::cout << "pub" << std::endl;
 #ifdef DEBUG
   static double priv_pub_secs =ros::Time::now().toSec();
 #endif
@@ -521,7 +524,7 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
       double position = 0.0;
       double velocity = 0.0;
       double effort = 0.0;
-      double temperature = 0.0;
+      uint8_t temperature = 0.0;
 
       joint_state_msg_.name.push_back(dxl.first);
       joint_state_temperature_msg_.name.push_back(dxl.first);
@@ -536,7 +539,7 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
       position = dxl_wb_->convertValue2Radian((uint8_t)dxl.second, (int32_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_position);
       // temperature = dxl_wb_->getTemperature((uint8_t)dxl.second, (int32_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_temperature);
        // temperature =  dynamixel_state_list_.dynamixel_state[id_cnt].present_temperature;
-      temperature =  (double)get_temperature[id_cnt];
+      temperature =  (uint8_t)get_temperature[id_cnt];
 
       joint_state_msg_.effort.push_back(effort);
       joint_state_msg_.velocity.push_back(velocity);
@@ -551,6 +554,7 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
     }
 
     joint_states_pub_.publish(joint_state_msg_);
+    joint_states_temperature_pub_.publish(joint_state_temperature_msg_);
   }
 
 #ifdef DEBUG
