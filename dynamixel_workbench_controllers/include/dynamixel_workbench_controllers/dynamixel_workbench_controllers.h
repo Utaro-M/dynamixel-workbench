@@ -102,7 +102,8 @@ class DynamixelController
   double pub_period_;
 
   bool is_moving_;
-  int32_t get_temperature[];
+  // int32_t get_temperature[];
+  uint8_t get_temperature[];
 
  public:
   DynamixelController();

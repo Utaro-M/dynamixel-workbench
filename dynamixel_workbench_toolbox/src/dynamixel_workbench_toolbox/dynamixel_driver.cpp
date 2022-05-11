@@ -1218,6 +1218,32 @@ bool DynamixelDriver::getSyncReadData(uint8_t index, uint8_t *id, uint8_t id_num
   return true;
 }
 
+bool DynamixelDriver::getSyncReadData(uint8_t index, uint8_t *id, uint8_t id_num, uint16_t address, uint16_t length, uint8_t *data, const char **log)
+{
+  ErrorFromSDK sdk_error = {0, false, false, 0};
+
+  for (int i = 0; i < id_num; i++)
+  {
+    sdk_error.dxl_getdata_result = syncReadHandler_[index].groupSyncRead->isAvailable(id[i],
+                                                                                      address,
+                                                                                      length);
+    if (sdk_error.dxl_getdata_result != true)
+    {
+      if (log != NULL) *log = "groupSyncRead getdata failed";
+      return false;
+    }
+    else
+    {
+      data[i] = syncReadHandler_[index].groupSyncRead->getData(id[i],
+                                                              address,
+                                                              length);
+    }
+  }
+
+  if (log != NULL) *log = "[DynamixelDriver] Succeeded to get sync read data!";
+  return true;
+}
+
 bool DynamixelDriver::getSyncReadData(uint8_t index, uint8_t *id, uint8_t id_num, uint16_t address, uint16_t length, int32_t *data, const char **log)
 {
   ErrorFromSDK sdk_error = {0, false, false, 0};

@@ -193,14 +193,7 @@ bool DynamixelController::initControlItems(void)
   control_items_["Present_Velocity"] = present_velocity;
   control_items_["Present_Current"] = present_current;
   control_items_["Present_Temperature"] = present_temperature;
-  std::cout <<" control_items_[Present_Position]->address =" << control_items_["Present_Position"]->address;
-  std::cout <<" control_items_[Present_Position]->data_length =" << control_items_["Present_Position"]->data_length;
-  std::cout <<" control_items_[Present_Velocity]->address =" << control_items_["Present_Velocity"]->address;
-  std::cout <<" control_items_[Present_Velocity]->data_length =" << control_items_["Present_Velocity"]->data_length;
-  std::cout <<" control_items_[Present_Current]->address =" << control_items_["Present_Current"]->address;
-  std::cout <<" control_items_[Present_Current]->data_length =" << control_items_["Present_Current"]->data_length;
-  std::cout <<" control_items_[Present_Temperature]->address =" << control_items_["Present_Temperature"]->address;
-  std::cout <<" control_items_[Present_Temperature]->data_length =" << control_items_["Present_Temperature"]->data_length;
+
   return true;
 }
 
@@ -348,7 +341,6 @@ bool DynamixelController::getPresentPosition(std::vector<std::string> dxl_name)
 void DynamixelController::initPublisher()
 {
   dynamixel_state_list_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::DynamixelStateList>("dynamixel_state", 100);
-  // if (is_joint_state_topic_) joint_states_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states", 100);
   if (is_joint_state_topic_){
     joint_states_pub_ = priv_node_handle_.advertise<sensor_msgs::JointState>("joint_states", 100);
     joint_states_temperature_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states_tmperature", 100);
@@ -380,7 +372,6 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
   int32_t get_current[dynamixel_.size()];
   int32_t get_velocity[dynamixel_.size()];
   int32_t get_position[dynamixel_.size()];
-  int32_t get_temperature[dynamixel_.size()];
 
   uint8_t id_array[dynamixel_.size()];
   uint8_t id_cnt = 0;
@@ -455,7 +446,6 @@ void DynamixelController::readCallback(const ros::TimerEvent&)
         dynamixel_state[index].present_current = get_current[index];
         dynamixel_state[index].present_velocity = get_velocity[index];
         dynamixel_state[index].present_position = get_position[index];
-        // dynamixel_state[index].present_temperature = get_temperature[index];
 
         dynamixel_state_list_.dynamixel_state.push_back(dynamixel_state[index]);
       }
@@ -507,6 +497,7 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
   if (is_joint_state_topic_)
   {
     joint_state_msg_.header.stamp = ros::Time::now();
+    joint_state_temperature_msg_.header.stamp = ros::Time::now();
 
     joint_state_msg_.name.clear();
     joint_state_msg_.position.clear();
@@ -537,8 +528,6 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
 
       velocity = dxl_wb_->convertValue2Velocity((uint8_t)dxl.second, (int32_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_velocity);
       position = dxl_wb_->convertValue2Radian((uint8_t)dxl.second, (int32_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_position);
-      // temperature = dxl_wb_->getTemperature((uint8_t)dxl.second, (int32_t)dynamixel_state_list_.dynamixel_state[id_cnt].present_temperature);
-       // temperature =  dynamixel_state_list_.dynamixel_state[id_cnt].present_temperature;
       temperature =  (uint8_t)get_temperature[id_cnt];
 
       joint_state_msg_.effort.push_back(effort);
