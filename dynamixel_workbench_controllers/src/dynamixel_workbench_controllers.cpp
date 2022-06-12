@@ -343,7 +343,7 @@ void DynamixelController::initPublisher()
   dynamixel_state_list_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::DynamixelStateList>("dynamixel_state", 100);
   if (is_joint_state_topic_){
     joint_states_pub_ = priv_node_handle_.advertise<sensor_msgs::JointState>("joint_states", 100);
-    joint_states_temperature_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states_tmperature", 100);
+    joint_states_temperature_pub_ = priv_node_handle_.advertise<dynamixel_workbench_msgs::JointStateTemperature>("joint_states_temperature", 100);
   }
 }
 // msg from dynamixel_joint_trajectory_server.py
